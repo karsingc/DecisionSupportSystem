@@ -24,7 +24,6 @@ from sklearn import svm
 from sklearn.neighbors import KNeighborsClassifier
 from sklearn import metrics
 from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score
-st.set_option('deprecation.showPyplotGlobalUse', False)
 
 st.title('Decision Support System Project')
 st.title('Laundry Scenario')
