@@ -7,4 +7,5 @@ pandas>=0.19
 streamlit==0.60.0
 seaborn==0.11.1
 smote
+boruta
 imblearn
