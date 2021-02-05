@@ -24,7 +24,7 @@ from sklearn import svm
 from sklearn.neighbors import KNeighborsClassifier
 from sklearn import metrics
 from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score
-
+from sklearn.metrics import silhouette_score 
 st.set_option('deprecation.showPyplotGlobalUse', False)
 
 st.title('Decision Support System Project')
@@ -36,8 +36,9 @@ st.text('Gan Xin Yun 1171101072')
 
 st.sidebar.header('Section')
 section = st.sidebar.radio("Choose a section:", 
-                              ("Exploratory Data Analysis", "Feature Selection", "Classification")
+                              ("Exploratory Data Analysis", "Feature Selection", "Classification", "Predict with SVM")
                               )
+
 
 
 df = pd.read_csv("LAUNDRY.csv")
@@ -219,7 +220,7 @@ elif section =="Feature Selection":
 
     #       Boruta graph
     sns_boruta_plot = sns.catplot(x="Score", y="Features", data=boruta_score[0:15], kind="bar",
-                                height=14, aspect=1.9, palette='coolwarm')
+                                height=14, aspect=1.0, palette='coolwarm')
     st.subheader("Top 20 Boruta Features")
     plt.title("Boruta Features")
     st.pyplot()
@@ -290,6 +291,9 @@ elif section== "Classification":
 
 
     st.subheader('Classification with different technique')
+
+    #==============================================================================================================================================================================
+    st.subheader("Prediction of Wash_Item")
     #       NAIVE BAISE
     nb = GaussianNB()
     nb.fit(X, y)
@@ -486,3 +490,366 @@ elif section== "Classification":
                 data=df_new, ax=axes[1], sizes=(40, 400), alpha=0.5)
     plt.title('Cluster 2')
     st.pyplot()
+
+    #=======================================================================================================================================================================================================
+    
+    # Show race prediction
+    st.subheader("Predcition of Race")
+
+    X = df1.drop('Race',1)
+    y = df1.Race
+
+    X_train, X_test, y_train, y_test = train_test_split(X,y, test_size = 0.2, random_state=10)
+
+
+    colnames = X.columns
+
+    rf = RandomForestClassifier(n_jobs=-1, class_weight="balanced",random_state=100, max_depth=3)
+
+    feat_selector = BorutaPy(rf, n_estimators="auto", random_state=100)
+
+    feat_selector.fit(X.values, y.values.ravel())
+
+    # Getting the score
+
+    boruta_score = ranking(
+        list(map(float, feat_selector.ranking_)), colnames, order=-1)
+    boruta_score = pd.DataFrame(
+        list(boruta_score.items()), columns=['Features', 'Score'])
+    boruta_score = boruta_score.sort_values("Score", ascending=False)
+
+    
+
+
+    #       NAIVE BAISE
+    nb = GaussianNB()
+    nb.fit(X, y)
+    st.write('NAIVE BAISE')
+
+    st.write('NB Score (train)=', nb.score(X_train, y_train))
+    st.write('NB Score (test)=', nb.score(X_test, y_test))
+
+    #       RANDOM FOREST CLASSIFIER
+    st.write('RANDOM FOREST CLASSIFIER')
+    rf = RandomForestClassifier(n_estimators=5, random_state=10)
+    rf.fit(X,y)
+
+    y_pred = rf.predict(X_test)
+    st.write('RF Score (train)=', rf.score(X_train, y_train))
+    st.write('RF Score (test)=', rf.score(X_test, y_test))
+
+
+    #       SVM
+    st.write('SUPPORT VECTOR MACHINES')
+    model_svm = svm.SVC(kernel='rbf',gamma='auto', degree=1/3)
+    model_svm.fit(X, y)
+
+    y_pred = model_svm.predict(X_test)
+    y_pred2 = model_svm.predict(X_train)
+
+    st.write("SVM Score (train)=", metrics.accuracy_score(y_train, y_pred2))
+    st.write("SVM Score (test)=", metrics.accuracy_score(y_test, y_pred))
+
+
+    #       KNN
+    knn = KNeighborsClassifier(n_neighbors=5)
+    knn.fit(X, y)
+    
+    st.write("Accuracy: ", knn.score(X_train, y_train))
+    st.write("Accuracy: ", knn.score(X_test, y_test))
+
+    # Classification after dropping low score features
+    X2 = df1[['shirt_type', 'pants_type', 'Pants_Colour', 'Age_Range', 'Money_Spent', 'Date', 'Spectacles', 'With_Kids', 'Shirt_Colour']]
+    y2 = df1.Race
+
+    X_train, X_test, y_train, y_test = train_test_split(X2,y2, test_size = 0.2, random_state=10)
+
+    
+    st.subheader("Classification after dropping low score features")
+    status = st.radio("Select Classifier: ", ('NAIVE BAYES 1',
+                                            'RANDOM FOREST CLASSIFIER 1', 'K-NEAREST NEIGHBORS ALGORITHM 1', 'SUPPORT VECTOR MACHINES 1'))
+
+    if (status == 'NAIVE BAYES 1'):
+        #      NB
+        st.write("NAIVE BAYES")
+        nb = GaussianNB()
+        nb.fit(X2, y2)
+
+        st.write('NB Score (train)=', nb.score(X_train, y_train))
+        st.write('NB Score (test)=', nb.score(X_test, y_test))
+
+    elif (status == 'RANDOM FOREST CLASSIFIER 1'):
+        #       RF
+        st.write('RANDOM FOREST CLASSIFIER')
+        rf = RandomForestClassifier(n_estimators=3, random_state=10)
+        rf.fit(X2, y2)
+
+        y_pred=rf.predict(X_test)
+
+        st.write('RF Score (train)=', rf.score(X_train, y_train))
+        st.write('RF Score (test)=', rf.score(X_test, y_test))
+
+    elif (status == 'K-NEAREST NEIGHBORS ALGORITHM 1'):
+        #       KNN
+        st.write('K-NEAREST NEIGHBORS ALGORITHM')
+        knn = KNeighborsClassifier(n_neighbors=10)
+        knn.fit(X2, y2)
+        st.write("Accuracy (train)= ", knn.score(X_train, y_train))
+        st.write("Accuracy (test)= ", knn.score(X_test, y_test))
+
+    elif (status == 'SUPPORT VECTOR MACHINES 1'):
+        #       SVM
+        st.write('SUPPORT VECTOR MACHINES')
+        model_svm = svm.SVC(kernel='rbf', gamma='auto', degree=2/3)
+        model_svm.fit(X2, y2)
+
+        y_pred = model_svm.predict(X_test)
+        y_pred2 = model_svm.predict(X_train)
+
+        st.write("SVM Score (train)= ", metrics.accuracy_score(y_train, y_pred2))
+        st.write("SVM Score (test)= ", metrics.accuracy_score(y_test, y_pred))
+
+    #       PREDICT
+    st.subheader("Predict using SUPPORT VECTOR MACHINES")
+
+
+    #       CLUSTERING
+    sns.relplot(x="Age_Range", y="Money_Spent", hue="Race", sizes=(
+        40, 400), alpha=0.5, palette="muted", height=6, data=df1)
+    plt.title('Clustering')
+    st.pyplot()
+
+    #       K-MEANS
+
+    km = KMeans(n_clusters=2, random_state=1)
+    km.fit(X)
+
+    distortions = []
+
+    for i in range(1, 11):
+        km = KMeans(
+            n_clusters=i, init='random',
+            n_init=10, max_iter=300,
+            tol=1e-04, random_state=0
+        )
+        km.fit(X)
+        distortions.append(km.inertia_)
+
+    # plot
+    plt.plot(range(1, 11), distortions, marker='o')
+    plt.xlabel('Number of clusters')
+    plt.ylabel('Distortion')
+    st.pyplot()
+
+    # another graph
+    df_new = df1.copy()
+    df_new = df_new.drop("Wash_Item", axis=1)
+    df_new['Wash_Item'] = km.labels_
+
+
+    fig, axes = plt.subplots(1, 2, figsize=(13, 6))
+
+    st.subheader("Scatter plot of wash item by age range and money spent")
+    sns.relplot(x="Age_Range", y="Money_Spent", hue="Race",
+                data=df1, ax=axes[0], sizes=(40, 400), alpha=0.5)
+    plt.title('Cluster 1')
+    st.pyplot()
+
+    sns.relplot(x="Age_Range", y="Money_Spent", hue="Race",
+                data=df_new, ax=axes[1], sizes=(40, 400), alpha=0.5)
+    plt.title('Cluster 2')
+    st.pyplot()
+
+
+#=======================================================================================================================================================================================================
+if section =="Predict with SVM":
+
+    st.subheader('Predict the race')
+
+    df1 = df.replace(np.nan, 'Unknown', regex=True)
+    df1 = df1.drop(['No', 'Washer_No', 'Dryer_No', 'Age_Range'], 1)
+
+    col = df1.columns
+
+    le = preprocessing.LabelEncoder()
+    df1[col] = df1[col].apply(lambda col: le.fit_transform(col))
+    df1 = pd.concat([df[['Age_Range', 'Washer_No', 'Dryer_No']], df1], 1)
+
+
+    imputer = KNNImputer(n_neighbors=5)
+    df1['Age_Range'] = imputer.fit_transform(df1)
+    df1['Age_Range'] = df1['Age_Range'].round(0)
+    df1['Money_Spent'] = np.random.randint(1, 50, df1.shape[0])
+
+    X = df1[['shirt_type', 'pants_type', 'Pants_Colour', 'Shirt_Colour', 'Money_Spent', 'Date', 'Spectacles', 'With_Kids']]
+    y = df1.Race
+
+    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=10)
+
+    model_svm = svm.SVC(kernel='rbf',gamma='auto', degree=2/3)
+    model_svm.fit(X, y)
+
+    shirt_type = st.selectbox('Shirt Type',("short_sleeve", "long_sleeve"))
+
+    pants_type = st.selectbox('Pants Type', ("long", "short"))
+
+    pants_colour = st.selectbox('Pants Colour', ("black", "blue_jeans", "yellow", "grey", "orange", "white", "brown", "red", "pink", "green", "blue", "purple"))
+
+    shirt_colour = st.selectbox('Shirt Colour', ("black", "yellow", "grey", "orange", "white", "brown", "red", "pink", "green", "blue", "purple"))
+    
+    money = st.text_input("Money Spent")
+
+    day = st.selectbox('Day', ("Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"))
+
+    spectacles = st.selectbox('Wearing spectacles?', ("Yes", "No"))
+
+    kids = st.selectbox('With kids?', ("Yes", "No"))
+
+    submit = st.button('Predict')
+
+    if submit:
+
+        userInput=[]
+
+        #==== shirt type =========
+
+        if (shirt_type == "short_sleeve"):
+           userInput.append(2)
+        else:
+           userInput.append(1)
+
+        #===== Pants type =========      
+
+        if (pants_type == "short"):
+           userInput.append(2)
+        else:
+           userInput.append(1)
+
+        #===== Pants colour =========
+
+        if (pants_colour == "black"):
+            userInput.append(1)
+        elif (pants_colour == "blue_jeans"):
+            userInput.append(6)
+        elif (pants_colour == "yellow"):
+            userInput.append(15)
+        elif (pants_colour == "white"):
+            userInput.append(14)
+        elif (pants_colour == "pink"):
+            userInput.append(11)
+        elif (pants_colour == "brown"):
+            userInput.append(7)
+        elif (pants_colour == "grey"):
+            userInput.append(9)
+        elif (pants_colour == "green"):
+            userInput.append(8)
+        elif (pants_colour == "red"):
+            userInput.append(13)
+        elif (pants_colour == "purple"):
+            userInput.append(12)
+        elif (pants_colour == "blue"):
+            userInput.append(3)
+        elif (pants_colour == "orange"):
+            userInput.append(10)
+        
+        #====== Shirt colour ===========
+        if (pants_colour == "black"):
+            userInput.append(1)
+        elif (pants_colour == "yellow"):
+            userInput.append(12)
+        elif (pants_colour == "white"):
+            userInput.append(11)
+        elif (pants_colour == "pink"):
+            userInput.append(8)
+        elif (pants_colour == "brown"):
+            userInput.append(4)
+        elif (pants_colour == "grey"):
+            userInput.append(6)
+        elif (pants_colour == "green"):
+            userInput.append(5)
+        elif (pants_colour == "red"):
+            userInput.append(10)
+        elif (pants_colour == "purple"):
+            userInput.append(9)
+        elif (pants_colour == "blue"):
+            userInput.append(3)
+        elif (pants_colour == "orange"):
+            userInput.append(7)
+
+        #======= Money Spent ===========
+
+        userInput.append(money)
+
+        #=========== Day ================
+
+        if (day == "Monday"):
+            userInput.append(1)
+        elif (day == "Tuesday"):
+            userInput.append(5)
+        elif (day == "Wednesday"):
+            userInput.append(6)
+        elif (day == "Thursday"):
+            userInput.append(4)
+        elif (day == "Friday"):
+            userInput.append(0)
+        elif (day == "Saturday"):
+            userInput.append(2)
+        elif (day == "Sunday"):
+            userInput.append(3)
+
+        #========= Spectacles ===========
+
+        if (spectacles == "Yes"):
+            userInput.append(1)
+        else:
+            userInput.append(0)
+        
+        #========= With Kid ==============
+
+        if (kids == "Yes"):
+            userInput.append(2)
+        else:
+            userInput.append(1)
+
+
+        result = model_svm.predict([userInput])
+
+        if (result == 1):
+            st.write("Predicted race is Chinese")
+        elif (result == 2):
+            st.write("Predicted race is Foreigner")
+        elif (result == 3):
+            st.write("Predicted race is Indian")
+        elif (result == 4):
+            st.write("Predicted race is Malay")
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
