@@ -327,7 +327,8 @@ elif section== "Classification":
     plt.xlabel('False Positive Rate')
     plt.ylabel('True Positive Rate')
     plt.title('Receiver Operating Characteristic (ROC) Curve')
-    st.pyplot(plt)
+    #st.pyplot(plt)
+ 
 
 
     #       RANDOM FOREST CLASSIFIER
